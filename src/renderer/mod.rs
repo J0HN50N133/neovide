@@ -4,6 +4,7 @@ pub mod cursor_renderer;
 pub mod fonts;
 pub mod grid_renderer;
 pub mod opengl;
+pub mod pdf;
 pub mod profiler;
 pub mod progress_bar;
 mod rendered_layer;
@@ -179,6 +180,11 @@ pub struct Renderer {
 
     settings: Arc<Settings>,
     message_selection: Option<MessageSelection>,
+
+    // PDF renderer
+    pdf_renderer: Option<pdf::SkiaSvgRenderer>,
+    pdf_document: Option<pdf::PdfDocument>,
+    pdf_current_page: usize,
 }
 
 /// Results of processing the draw commands from the command channel.
@@ -218,7 +224,59 @@ impl Renderer {
             user_scale_factor,
             settings,
             message_selection: None,
+            pdf_renderer: Some(pdf::SkiaSvgRenderer::new()),
+            pdf_document: None,
+            pdf_current_page: 0,
         }
+    }
+
+    /// Load a PDF file
+    pub fn load_pdf(&mut self, data: &[u8]) -> Result<usize, pdf::PdfError> {
+        let renderer = self.pdf_renderer.as_mut().ok_or(pdf::PdfError::Load("Renderer not available".to_string()))?;
+        let doc = renderer.load_pdf(data)?;
+        let page_count = doc.page_count();
+        self.pdf_document = Some(doc);
+        self.pdf_current_page = 0;
+        Ok(page_count)
+    }
+
+    /// Get the current PDF page count
+    pub fn pdf_page_count(&self) -> Option<usize> {
+        self.pdf_document.as_ref().map(|doc| doc.page_count())
+    }
+
+    /// Get the current PDF page
+    pub fn pdf_current_page(&self) -> usize {
+        self.pdf_current_page
+    }
+
+    /// Set the current PDF page
+    pub fn pdf_set_page(&mut self, page: usize) -> bool {
+        if let Some(doc) = self.pdf_document.as_ref() {
+            if page < doc.page_count() {
+                self.pdf_current_page = page;
+                return true;
+            }
+        }
+        false
+    }
+
+    /// Render the current PDF page to the canvas
+    pub fn render_pdf_page(&mut self, canvas: &Canvas, dest_rect: skia_safe::IRect) -> Result<(), pdf::PdfError> {
+        let renderer = self.pdf_renderer.as_mut().ok_or(pdf::PdfError::Load("Renderer not available".to_string()))?;
+        let doc = self.pdf_document.as_ref().ok_or(pdf::PdfError::Load("No PDF loaded".to_string()))?;
+        renderer.render_page(doc, self.pdf_current_page, canvas, dest_rect)
+    }
+
+    /// Close the current PDF
+    pub fn close_pdf(&mut self) {
+        self.pdf_document = None;
+        self.pdf_current_page = 0;
+    }
+
+    /// Check if a PDF is currently loaded
+    pub fn has_pdf(&self) -> bool {
+        self.pdf_document.is_some()
     }
 
     pub fn handle_event(&mut self, event: &WindowEvent) {
@@ -357,6 +415,17 @@ impl Renderer {
         let grid_size = self.get_grid_size();
 
         root_canvas.restore();
+
+        // Render PDF if loaded
+        if self.has_pdf() {
+            let width = root_canvas.image_info().width();
+            let height = root_canvas.image_info().height();
+            let dest_rect = skia_safe::IRect::from_ltrb(0, 0, width as i32, height as i32);
+
+            if let Err(e) = self.render_pdf_page(root_canvas, dest_rect) {
+                log::error!("Failed to render PDF: {:?}", e);
+            }
+        }
 
         let progress_bar_settings = self.settings.get::<ProgressBarSettings>();
         self.progress_bar.draw(
@@ -605,6 +674,13 @@ impl Renderer {
         } else {
             DEFAULT_GRID_SIZE
         }
+    }
+}
+
+impl Default for Renderer {
+    fn default() -> Self {
+        // Default implementation not really usable, but required for some contexts
+        panic!("Renderer must be created with ::new()")
     }
 }
 

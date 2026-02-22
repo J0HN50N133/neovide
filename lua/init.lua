@@ -397,4 +397,26 @@ M.commit_handler = function(commit_raw_text, commit_formatted_text)
     vim.api.nvim_input(commit_formatted_text)
 end
 
+-- PDF viewer commands
+vim.api.nvim_create_user_command("NeovideOpenPdf", function(opts)
+    local path = opts.args
+    if path == "" then
+        vim.notify("Please provide a PDF file path", vim.log.levels.ERROR, { title = "Neovide" })
+        return
+    end
+    rpcrequest("neovide.open_pdf", path)
+end, { nargs = 1 })
+
+vim.api.nvim_create_user_command("NeovidePdfNextPage", function()
+    rpcrequest("neovide.pdf_next_page")
+end, {})
+
+vim.api.nvim_create_user_command("NeovidePdfPrevPage", function()
+    rpcrequest("neovide.pdf_prev_page")
+end, {})
+
+vim.api.nvim_create_user_command("NeovidePdfClose", function()
+    rpcrequest("neovide.pdf_close")
+end, {})
+
 _G["neovide"] = M

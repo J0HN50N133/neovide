@@ -287,6 +287,41 @@ impl WinitWindowWrapper {
             WindowCommand::RegisterRightClick => register_right_click(),
             #[cfg(windows)]
             WindowCommand::UnregisterRightClick => unregister_right_click(),
+            WindowCommand::OpenPdf(path) => {
+                log::info!("Opening PDF: {}", path);
+                match std::fs::read(&path) {
+                    Ok(data) => {
+                        match self.renderer.load_pdf(&data) {
+                            Ok(page_count) => {
+                                log::info!("PDF loaded successfully, {} pages", page_count);
+                            }
+                            Err(e) => {
+                                log::error!("Failed to load PDF: {:?}", e);
+                            }
+                        }
+                    }
+                    Err(e) => {
+                        log::error!("Failed to read PDF file: {}", e);
+                    }
+                }
+            }
+            WindowCommand::PdfNextPage => {
+                if let Some(count) = self.renderer.pdf_page_count() {
+                    let current = self.renderer.pdf_current_page();
+                    if current + 1 < count {
+                        let _ = self.renderer.pdf_set_page(current + 1);
+                    }
+                }
+            }
+            WindowCommand::PdfPrevPage => {
+                let current = self.renderer.pdf_current_page();
+                if current > 0 {
+                    let _ = self.renderer.pdf_set_page(current - 1);
+                }
+            }
+            WindowCommand::PdfClose => {
+                self.renderer.close_pdf();
+            }
         }
     }
 

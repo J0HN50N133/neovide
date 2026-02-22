@@ -158,6 +158,36 @@ impl Handler for NeovimHandler {
                     .unwrap()
                     .send_event(WindowCommand::FocusWindow.into());
             }
+            "neovide.open_pdf" => {
+                if let Some(path) = arguments[0].as_str() {
+                    let _ = self
+                        .proxy
+                        .lock()
+                        .unwrap()
+                        .send_event(WindowCommand::OpenPdf(path.to_string()).into());
+                }
+            }
+            "neovide.pdf_next_page" => {
+                let _ = self
+                    .proxy
+                    .lock()
+                    .unwrap()
+                    .send_event(WindowCommand::PdfNextPage.into());
+            }
+            "neovide.pdf_prev_page" => {
+                let _ = self
+                    .proxy
+                    .lock()
+                    .unwrap()
+                    .send_event(WindowCommand::PdfPrevPage.into());
+            }
+            "neovide.pdf_close" => {
+                let _ = self
+                    .proxy
+                    .lock()
+                    .unwrap()
+                    .send_event(WindowCommand::PdfClose.into());
+            }
             #[cfg(target_os = "macos")]
             "neovide.force_click" => match parse_force_click_args(&arguments) {
                 Some((col, row, entity, guifont, kind)) => {

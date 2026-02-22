@@ -130,6 +130,11 @@ pub enum WindowCommand {
     RegisterRightClick,
     #[cfg(windows)]
     UnregisterRightClick,
+    // PDF commands
+    OpenPdf(String),
+    PdfNextPage,
+    PdfPrevPage,
+    PdfClose,
 }
 
 #[derive(Debug)]
