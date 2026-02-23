@@ -290,16 +290,14 @@ impl WinitWindowWrapper {
             WindowCommand::OpenPdf(path) => {
                 log::info!("Opening PDF: {}", path);
                 match std::fs::read(&path) {
-                    Ok(data) => {
-                        match self.renderer.load_pdf(&data) {
-                            Ok(page_count) => {
-                                log::info!("PDF loaded successfully, {} pages", page_count);
-                            }
-                            Err(e) => {
-                                log::error!("Failed to load PDF: {:?}", e);
-                            }
+                    Ok(data) => match self.renderer.load_pdf(&data) {
+                        Ok(page_count) => {
+                            log::info!("PDF loaded successfully, {} pages", page_count);
                         }
-                    }
+                        Err(e) => {
+                            log::error!("Failed to load PDF: {:?}", e);
+                        }
+                    },
                     Err(e) => {
                         log::error!("Failed to read PDF file: {}", e);
                     }

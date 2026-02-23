@@ -8,9 +8,16 @@ impl PdfToSvgConverter {
         Self
     }
 
-    pub fn convert_page(&self, document: &PdfDocument, page_index: usize) -> Result<String, PdfError> {
+    pub fn convert_page(
+        &self,
+        document: &PdfDocument,
+        page_index: usize,
+    ) -> Result<String, PdfError> {
         let hayro_doc = document.inner();
-        let page = hayro_doc.pages().get(page_index).ok_or(PdfError::PageNotFound(page_index))?;
+        let page = hayro_doc
+            .pages()
+            .get(page_index)
+            .ok_or(PdfError::PageNotFound(page_index))?;
 
         let svg_string = convert(page, &Default::default());
 

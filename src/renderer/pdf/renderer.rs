@@ -1,7 +1,6 @@
 use crate::renderer::pdf::cache::SvgCache;
 use crate::renderer::pdf::converter::PdfToSvgConverter;
 use crate::renderer::pdf::loader::{PdfDocument, PdfError};
-use skia_safe::svg::Dom;
 
 pub struct SkiaSvgRenderer {
     converter: PdfToSvgConverter,
@@ -37,10 +36,7 @@ impl SkiaSvgRenderer {
         canvas.clip_rect(rect, None, Some(false));
 
         // Use Dom's render method directly
-        svg_dom.set_container_size((
-            dest_rect.width() as f32,
-            dest_rect.height() as f32,
-        ));
+        svg_dom.set_container_size((dest_rect.width() as f32, dest_rect.height() as f32));
         svg_dom.render(canvas);
 
         canvas.restore();
@@ -48,10 +44,12 @@ impl SkiaSvgRenderer {
         Ok(())
     }
 
+    #[allow(dead_code)]
     pub fn page_count(&self, document: &PdfDocument) -> usize {
         document.page_count()
     }
 
+    #[allow(dead_code)]
     pub fn page_size(&self, document: &PdfDocument, page_index: usize) -> Option<(f32, f32)> {
         document.page_size(page_index)
     }

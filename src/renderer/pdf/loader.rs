@@ -10,15 +10,16 @@ impl PdfDocument {
     pub fn load(data: &[u8]) -> Result<Self, PdfError> {
         type PdfData = Arc<dyn AsRef<[u8]> + Send + Sync>;
         let pdf_data: PdfData = Arc::new(data.to_vec());
-        let inner = HayroPdf::new(pdf_data)
-            .map_err(|e| PdfError::Load(format!("{:?}", e)))?;
+        let inner = HayroPdf::new(pdf_data).map_err(|e| PdfError::Load(format!("{:?}", e)))?;
         Ok(Self { inner })
     }
 
+    #[allow(dead_code)]
     pub fn page_count(&self) -> usize {
         self.inner.len()
     }
 
+    #[allow(dead_code)]
     pub fn page_size(&self, page_index: usize) -> Option<(f32, f32)> {
         self.inner.pages().get(page_index).map(|page| {
             let (width, height) = page.render_dimensions();

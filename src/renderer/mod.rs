@@ -232,7 +232,10 @@ impl Renderer {
 
     /// Load a PDF file
     pub fn load_pdf(&mut self, data: &[u8]) -> Result<usize, pdf::PdfError> {
-        let renderer = self.pdf_renderer.as_mut().ok_or(pdf::PdfError::Load("Renderer not available".to_string()))?;
+        let renderer = self
+            .pdf_renderer
+            .as_mut()
+            .ok_or(pdf::PdfError::Load("Renderer not available".to_string()))?;
         let doc = renderer.load_pdf(data)?;
         let page_count = doc.page_count();
         self.pdf_document = Some(doc);
@@ -262,9 +265,19 @@ impl Renderer {
     }
 
     /// Render the current PDF page to the canvas
-    pub fn render_pdf_page(&mut self, canvas: &Canvas, dest_rect: skia_safe::IRect) -> Result<(), pdf::PdfError> {
-        let renderer = self.pdf_renderer.as_mut().ok_or(pdf::PdfError::Load("Renderer not available".to_string()))?;
-        let doc = self.pdf_document.as_ref().ok_or(pdf::PdfError::Load("No PDF loaded".to_string()))?;
+    pub fn render_pdf_page(
+        &mut self,
+        canvas: &Canvas,
+        dest_rect: skia_safe::IRect,
+    ) -> Result<(), pdf::PdfError> {
+        let renderer = self
+            .pdf_renderer
+            .as_mut()
+            .ok_or(pdf::PdfError::Load("Renderer not available".to_string()))?;
+        let doc = self
+            .pdf_document
+            .as_ref()
+            .ok_or(pdf::PdfError::Load("No PDF loaded".to_string()))?;
         renderer.render_page(doc, self.pdf_current_page, canvas, dest_rect)
     }
 

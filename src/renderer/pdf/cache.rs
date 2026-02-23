@@ -15,11 +15,7 @@ impl SvgCache {
         }
     }
 
-    pub fn get_or_create(
-        &mut self,
-        svg_string: &str,
-        _page_index: usize,
-    ) -> Result<Dom, PdfError> {
+    pub fn get_or_create(&mut self, svg_string: &str, _page_index: usize) -> Result<Dom, PdfError> {
         let key = svg_string.to_string();
 
         // Return clone if already exists
@@ -30,8 +26,8 @@ impl SvgCache {
         // Create new entry
         let data = skia_safe::Data::new_copy(svg_string.as_bytes());
         let font_mgr = skia_safe::FontMgr::default();
-        let svg_dom = Dom::read(data.as_bytes(), font_mgr)
-            .map_err(|e| PdfError::Svg(format!("{:?}", e)))?;
+        let svg_dom =
+            Dom::read(data.as_bytes(), font_mgr).map_err(|e| PdfError::Svg(format!("{:?}", e)))?;
 
         // Store and return clone
         let result = svg_dom.clone();
@@ -40,6 +36,7 @@ impl SvgCache {
         Ok(result)
     }
 
+    #[allow(dead_code)]
     pub fn clear(&mut self) {
         self.cache.clear();
     }
