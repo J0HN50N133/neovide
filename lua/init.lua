@@ -400,10 +400,12 @@ end
 -- PDF viewer commands
 vim.api.nvim_create_user_command("NeovideOpenPdf", function(opts)
     local path = opts.args
+    vim.notify("NeovideOpenPdf called with: " .. path, vim.log.levels.WARN, { title = "Neovide" })
     if path == "" then
         vim.notify("Please provide a PDF file path", vim.log.levels.ERROR, { title = "Neovide" })
         return
     end
+    vim.notify("Sending RPC request...", vim.log.levels.WARN, { title = "Neovide" })
     rpcrequest("neovide.open_pdf", path)
 end, { nargs = 1 })
 

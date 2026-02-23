@@ -159,12 +159,16 @@ impl Handler for NeovimHandler {
                     .send_event(WindowCommand::FocusWindow.into());
             }
             "neovide.open_pdf" => {
+                log::debug!("Received open_pdf command with arguments: {:?}", arguments);
                 if let Some(path) = arguments[0].as_str() {
+                    log::debug!("Opening PDF via rpc: {}", path);
                     let _ = self
                         .proxy
                         .lock()
                         .unwrap()
                         .send_event(WindowCommand::OpenPdf(path.to_string()).into());
+                } else {
+                    log::error!("Invalid path argument for open_pdf: {:?}", arguments);
                 }
             }
             "neovide.pdf_next_page" => {
