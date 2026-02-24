@@ -1,0 +1,37 @@
+name: Build Windows with Zig
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - pdf-renderer-zig-build
+
+jobs:
+  build-windows-zig:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Rust
+        uses: dtolnay/rust-toolchain@master
+
+      - name: Install cargo-zigbuild
+        uses: cargo-bins/cargo-binstall@main
+        with:
+          binaries: cargo-zigbuild
+
+      - name: Install Zig
+        uses: ziglang/zig-action@v1
+        with:
+          version: 0.15
+
+      - name: Build Windows executable
+        run: |
+          cargo zigbuild --target x86_64-pc-windows-gnu --release
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: neovide-windows
+          path: target/x86_64-pc-windows-gnu/release/neovide.exe
