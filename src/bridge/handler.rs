@@ -93,6 +93,48 @@ impl Handler for NeovimHandler {
                     .quit_with_code(error_code as u8, "Quit from neovim");
                 Ok(Value::Nil)
             }
+            "neovide.open_pdf" => {
+                log::warn!(
+                    "handle_request: Received open_pdf with args: {:?}",
+                    arguments
+                );
+                if let Some(path) = arguments[0].as_str() {
+                    log::warn!("handle_request: Opening PDF: {}", path);
+                    let _ = self
+                        .proxy
+                        .lock()
+                        .unwrap()
+                        .send_event(WindowCommand::OpenPdf(path.to_string()).into());
+                    Ok(Value::Nil)
+                } else {
+                    log::error!("Invalid path argument for open_pdf: {:?}", arguments);
+                    Ok(Value::from("Invalid path"))
+                }
+            }
+            "neovide.pdf_next_page" => {
+                let _ = self
+                    .proxy
+                    .lock()
+                    .unwrap()
+                    .send_event(WindowCommand::PdfNextPage.into());
+                Ok(Value::Nil)
+            }
+            "neovide.pdf_prev_page" => {
+                let _ = self
+                    .proxy
+                    .lock()
+                    .unwrap()
+                    .send_event(WindowCommand::PdfPrevPage.into());
+                Ok(Value::Nil)
+            }
+            "neovide.pdf_close" => {
+                let _ = self
+                    .proxy
+                    .lock()
+                    .unwrap()
+                    .send_event(WindowCommand::PdfClose.into());
+                Ok(Value::Nil)
+            }
             _ => Ok(Value::from("rpcrequest not handled")),
         }
     }
@@ -157,40 +199,6 @@ impl Handler for NeovimHandler {
                     .lock()
                     .unwrap()
                     .send_event(WindowCommand::FocusWindow.into());
-            }
-            "neovide.open_pdf" => {
-                log::debug!("Received open_pdf command with arguments: {:?}", arguments);
-                if let Some(path) = arguments[0].as_str() {
-                    log::debug!("Opening PDF via rpc: {}", path);
-                    let _ = self
-                        .proxy
-                        .lock()
-                        .unwrap()
-                        .send_event(WindowCommand::OpenPdf(path.to_string()).into());
-                } else {
-                    log::error!("Invalid path argument for open_pdf: {:?}", arguments);
-                }
-            }
-            "neovide.pdf_next_page" => {
-                let _ = self
-                    .proxy
-                    .lock()
-                    .unwrap()
-                    .send_event(WindowCommand::PdfNextPage.into());
-            }
-            "neovide.pdf_prev_page" => {
-                let _ = self
-                    .proxy
-                    .lock()
-                    .unwrap()
-                    .send_event(WindowCommand::PdfPrevPage.into());
-            }
-            "neovide.pdf_close" => {
-                let _ = self
-                    .proxy
-                    .lock()
-                    .unwrap()
-                    .send_event(WindowCommand::PdfClose.into());
             }
             #[cfg(target_os = "macos")]
             "neovide.force_click" => match parse_force_click_args(&arguments) {
