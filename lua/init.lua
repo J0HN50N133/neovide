@@ -400,13 +400,34 @@ end
 -- PDF viewer commands
 vim.api.nvim_create_user_command("NeovideOpenPdf", function(opts)
     local path = opts.args
-    vim.notify("NeovideOpenPdf called with: " .. path, vim.log.levels.WARN, { title = "Neovide" })
     if path == "" then
         vim.notify("Please provide a PDF file path", vim.log.levels.ERROR, { title = "Neovide" })
         return
     end
-    vim.notify("Sending RPC request...", vim.log.levels.WARN, { title = "Neovide" })
-    rpcrequest("neovide.open_pdf", path)
+
+    -- Open the PDF
+    local result = rpcrequest("neovide.open_pdf", path)
+    if result then
+        -- Enter PDF mode
+        vim.cmd("setlocal noshowmode")
+        vim.cmd("setlocal nocursorline")
+        vim.cmd("setlocal wrap")
+
+        -- Set up keybindings for PDF navigation
+        vim.keymap.set("n", "q", ":NeovidePdfClose<CR>", { buffer = true, silent = true })
+        vim.keymap.set("n", "<Esc>", ":NeovidePdfClose<CR>", { buffer = true, silent = true })
+        vim.keymap.set("n", "j", ":NeovidePdfNextPage<CR>", { buffer = true, silent = true })
+        vim.keymap.set("n", "k", ":NeovidePdfPrevPage<CR>", { buffer = true, silent = true })
+        vim.keymap.set("n", "<Down>", ":NeovidePdfNextPage<CR>", { buffer = true, silent = true })
+        vim.keymap.set("n", "<Up>", ":NeovidePdfPrevPage<CR>", { buffer = true, silent = true })
+        vim.keymap.set("n", "<Space>", ":NeovidePdfNextPage<CR>", { buffer = true, silent = true })
+        vim.keymap.set("n", "l", ":NeovidePdfNextPage<CR>", { buffer = true, silent = true })
+        vim.keymap.set("n", "h", ":NeovidePdfPrevPage<CR>", { buffer = true, silent = true })
+
+        vim.notify("PDF opened! Use j/k or h/l to navigate, q to close", vim.log.levels.INFO, { title = "Neovide" })
+    else
+        vim.notify("Failed to open PDF", vim.log.levels.ERROR, { title = "Neovide" })
+    end
 end, { nargs = 1 })
 
 vim.api.nvim_create_user_command("NeovidePdfNextPage", function()
@@ -418,6 +439,21 @@ vim.api.nvim_create_user_command("NeovidePdfPrevPage", function()
 end, {})
 
 vim.api.nvim_create_user_command("NeovidePdfClose", function()
+    -- Clear keybindings
+    vim.keymap.del("n", "q", { buffer = true })
+    vim.keymap.del("n", "<Esc>", { buffer = true })
+    vim.keymap.del("n", "j", { buffer = true })
+    vim.keymap.del("n", "k", { buffer = true })
+    vim.keymap.del("n", "<Down>", { buffer = true })
+    vim.keymap.del("n", "<Up>", { buffer = true })
+    vim.keymap.del("n", "<Space>", { buffer = true })
+    vim.keymap.del("n", "l", { buffer = true })
+    vim.keymap.del("n", "h", { buffer = true })
+
+    -- Restore settings
+    vim.cmd("setlocal showmode")
+    vim.cmd("setlocal cursorline")
+
     rpcrequest("neovide.pdf_close")
 end, {})
 

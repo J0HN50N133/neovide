@@ -185,6 +185,7 @@ pub struct Renderer {
     pdf_renderer: Option<pdf::SkiaSvgRenderer>,
     pdf_document: Option<pdf::PdfDocument>,
     pdf_current_page: usize,
+    pdf_dirty: bool, // true when we need to re-render
 }
 
 /// Results of processing the draw commands from the command channel.
@@ -227,6 +228,7 @@ impl Renderer {
             pdf_renderer: Some(pdf::SkiaSvgRenderer::new()),
             pdf_document: None,
             pdf_current_page: 0,
+            pdf_dirty: false,
         }
     }
 
@@ -240,6 +242,7 @@ impl Renderer {
         let page_count = doc.page_count();
         self.pdf_document = Some(doc);
         self.pdf_current_page = 0;
+        self.pdf_dirty = true;
         Ok(page_count)
     }
 
@@ -258,10 +261,21 @@ impl Renderer {
         if let Some(doc) = self.pdf_document.as_ref() {
             if page < doc.page_count() {
                 self.pdf_current_page = page;
+                self.pdf_dirty = true;
                 return true;
             }
         }
         false
+    }
+
+    /// Check if PDF needs re-rendering
+    pub fn pdf_needs_render(&self) -> bool {
+        self.has_pdf() && self.pdf_dirty
+    }
+
+    /// Mark PDF as rendered (clear dirty flag)
+    pub fn pdf_mark_rendered(&mut self) {
+        self.pdf_dirty = false;
     }
 
     /// Render the current PDF page to the canvas
@@ -285,6 +299,7 @@ impl Renderer {
     pub fn close_pdf(&mut self) {
         self.pdf_document = None;
         self.pdf_current_page = 0;
+        self.pdf_dirty = false;
     }
 
     /// Check if a PDF is currently loaded
@@ -429,8 +444,8 @@ impl Renderer {
 
         root_canvas.restore();
 
-        // Render PDF if loaded
-        if self.has_pdf() {
+        // Render PDF if loaded and dirty (needs re-render)
+        if self.pdf_needs_render() {
             let width = root_canvas.image_info().width();
             let height = root_canvas.image_info().height();
             let dest_rect = skia_safe::IRect::from_ltrb(0, 0, width as i32, height as i32);
@@ -438,6 +453,7 @@ impl Renderer {
             if let Err(e) = self.render_pdf_page(root_canvas, dest_rect) {
                 log::error!("Failed to render PDF: {:?}", e);
             }
+            self.pdf_mark_rendered();
         }
 
         let progress_bar_settings = self.settings.get::<ProgressBarSettings>();

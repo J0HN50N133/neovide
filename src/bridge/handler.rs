@@ -94,21 +94,15 @@ impl Handler for NeovimHandler {
                 Ok(Value::Nil)
             }
             "neovide.open_pdf" => {
-                log::warn!(
-                    "handle_request: Received open_pdf with args: {:?}",
-                    arguments
-                );
                 if let Some(path) = arguments[0].as_str() {
-                    log::warn!("handle_request: Opening PDF: {}", path);
                     let _ = self
                         .proxy
                         .lock()
                         .unwrap()
                         .send_event(WindowCommand::OpenPdf(path.to_string()).into());
-                    Ok(Value::Nil)
+                    Ok(Value::from(true))
                 } else {
-                    log::error!("Invalid path argument for open_pdf: {:?}", arguments);
-                    Ok(Value::from("Invalid path"))
+                    Ok(Value::from(false))
                 }
             }
             "neovide.pdf_next_page" => {
