@@ -186,6 +186,7 @@ pub struct Renderer {
     pdf_document: Option<pdf::PdfDocument>,
     pdf_current_page: usize,
     pdf_dirty: bool, // true when we need to re-render
+    pdf_grid_id: Option<u64>, // grid_id of the window where PDF is rendered
 }
 
 /// Results of processing the draw commands from the command channel.
@@ -229,6 +230,7 @@ impl Renderer {
             pdf_document: None,
             pdf_current_page: 0,
             pdf_dirty: false,
+            pdf_grid_id: None,
         }
     }
 
@@ -300,11 +302,28 @@ impl Renderer {
         self.pdf_document = None;
         self.pdf_current_page = 0;
         self.pdf_dirty = false;
+        self.clear_pdf_grid_id();
     }
 
     /// Check if a PDF is currently loaded
     pub fn has_pdf(&self) -> bool {
         self.pdf_document.is_some()
+    }
+
+    /// Set the PDF grid_id (the window where PDF should be rendered)
+    pub fn set_pdf_grid_id(&mut self, grid_id: u64) {
+        self.pdf_grid_id = Some(grid_id);
+        self.pdf_dirty = true;
+    }
+
+    /// Get the PDF grid_id
+    pub fn pdf_grid_id(&self) -> Option<u64> {
+        self.pdf_grid_id
+    }
+
+    /// Clear the PDF grid_id
+    fn clear_pdf_grid_id(&mut self) {
+        self.pdf_grid_id = None;
     }
 
     pub fn handle_event(&mut self, event: &WindowEvent) {
@@ -444,15 +463,33 @@ impl Renderer {
 
         root_canvas.restore();
 
-        // Render PDF if loaded and dirty (needs re-render)
-        if self.pdf_needs_render() {
-            let width = root_canvas.image_info().width();
-            let height = root_canvas.image_info().height();
-            let dest_rect = skia_safe::IRect::from_ltrb(0, 0, width as i32, height as i32);
-
-            if let Err(e) = self.render_pdf_page(root_canvas, dest_rect) {
-                log::error!("Failed to render PDF: {:?}", e);
+        // Render PDF in the PDF window region (after the canvas restore)
+        let pdf_grid_id = self.pdf_grid_id;
+        if let Some(pdf_win_id) = pdf_grid_id {
+            if self.has_pdf() && self.pdf_dirty {
+                let pixel_region = self
+                    .rendered_windows
+                    .get(&pdf_win_id)
+                    .map(|window| window.pixel_region(grid_scale));
+                if let Some(pixel_region) = pixel_region {
+                    let dest_rect = skia_safe::IRect::from_ltrb(
+                        pixel_region.min.x as i32,
+                        pixel_region.min.y as i32,
+                        pixel_region.max.x as i32,
+                        pixel_region.max.y as i32,
+                    );
+                    root_canvas.save();
+                    root_canvas.clip_rect(to_skia_rect(&pixel_region), None, Some(false));
+                    if let Err(e) = self.render_pdf_page(root_canvas, dest_rect) {
+                        log::error!("Failed to render PDF in window: {:?}", e);
+                    }
+                    root_canvas.restore();
+                }
             }
+        }
+
+        // Mark PDF as rendered after all windows have been drawn
+        if self.pdf_needs_render() && pdf_grid_id.is_some() {
             self.pdf_mark_rendered();
         }
 

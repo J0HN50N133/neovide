@@ -405,9 +405,45 @@ vim.api.nvim_create_user_command("NeovideOpenPdf", function(opts)
         return
     end
 
-    -- Open the PDF
+    -- Close existing PDF if any
+    pcall(function()
+        vim.cmd("bd! #")
+    end)
+
+    -- Create a new split window
+    vim.cmd("split")
+
+    -- Get the grid_id of the current window (the new split window)
+    local ok, grid_id = pcall(vim.fn.nvim_win_get_number, vim.api.nvim_get_current_win())
+    if not ok then
+        grid_id = 0
+    end
+
+    -- Set buffer name to the PDF path for display
+    vim.api.nvim_buf_set_name(0, "PDF: " .. path)
+
+    -- Disable modifications
+    vim.cmd("setlocal buftype=nofile")
+    vim.cmd("setlocal noswapfile")
+    vim.cmd("setlocal nowrap")
+    vim.cmd("setlocal modifiable")
+    vim.cmd("setlocal readonly=false")
+
+    -- Set placeholder content
+    local lines = { "Loading PDF: " .. path, "", "Press j/k to navigate, q to close" }
+    vim.api.nvim_buf_set_lines(0, 0, -1, false, lines)
+
+    -- Make buffer not modifiable
+    vim.cmd("setlocal nomodifiable")
+    vim.cmd("setlocal readonly")
+
+    -- Open the PDF (this triggers the actual PDF loading)
     local result = rpcrequest("neovide.open_pdf", path)
+
+    -- Notify Rust about the grid_id for PDF rendering
     if result then
+        rpcrequest("neovide.pdf_set_grid_id", grid_id)
+
         -- Enter PDF mode
         vim.cmd("setlocal noshowmode")
         vim.cmd("setlocal nocursorline")
@@ -426,6 +462,8 @@ vim.api.nvim_create_user_command("NeovideOpenPdf", function(opts)
 
         vim.notify("PDF opened! Use j/k or h/l to navigate, q to close", vim.log.levels.INFO, { title = "Neovide" })
     else
+        -- Close the split window if PDF failed to open
+        vim.cmd("close")
         vim.notify("Failed to open PDF", vim.log.levels.ERROR, { title = "Neovide" })
     end
 end, { nargs = 1 })
@@ -454,6 +492,10 @@ vim.api.nvim_create_user_command("NeovidePdfClose", function()
     vim.cmd("setlocal showmode")
     vim.cmd("setlocal cursorline")
 
+    -- Close the PDF window
+    vim.cmd("close")
+
+    -- Notify Rust to close PDF
     rpcrequest("neovide.pdf_close")
 end, {})
 

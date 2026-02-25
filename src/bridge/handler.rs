@@ -129,6 +129,18 @@ impl Handler for NeovimHandler {
                     .send_event(WindowCommand::PdfClose.into());
                 Ok(Value::Nil)
             }
+            "neovide.pdf_set_grid_id" => {
+                if let Some(grid_id) = arguments[0].as_u64() {
+                    let _ = self
+                        .proxy
+                        .lock()
+                        .unwrap()
+                        .send_event(WindowCommand::PdfSetGridId(grid_id).into());
+                    Ok(Value::from(true))
+                } else {
+                    Ok(Value::from(false))
+                }
+            }
             _ => Ok(Value::from("rpcrequest not handled")),
         }
     }

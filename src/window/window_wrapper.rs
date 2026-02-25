@@ -324,6 +324,10 @@ impl WinitWindowWrapper {
             WindowCommand::PdfClose => {
                 self.renderer.close_pdf();
             }
+            WindowCommand::PdfSetGridId(grid_id) => {
+                log::info!("Setting PDF grid_id to: {}", grid_id);
+                self.renderer.set_pdf_grid_id(grid_id);
+            }
         }
     }
 

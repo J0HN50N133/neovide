@@ -135,6 +135,7 @@ pub enum WindowCommand {
     PdfNextPage,
     PdfPrevPage,
     PdfClose,
+    PdfSetGridId(u64),
 }
 
 #[derive(Debug)]
