@@ -187,6 +187,7 @@ pub struct Renderer {
     pdf_current_page: usize,
     pdf_dirty: bool, // true when we need to re-render
     pdf_grid_id: Option<u64>, // grid_id of the window where PDF is rendered
+    pdf_expect_window: bool, // set to true when opening PDF, next window created will be the PDF window
 }
 
 /// Results of processing the draw commands from the command channel.
@@ -231,6 +232,7 @@ impl Renderer {
             pdf_current_page: 0,
             pdf_dirty: false,
             pdf_grid_id: None,
+            pdf_expect_window: false,
         }
     }
 
@@ -245,6 +247,7 @@ impl Renderer {
         self.pdf_document = Some(doc);
         self.pdf_current_page = 0;
         self.pdf_dirty = true;
+        self.pdf_expect_window = true; // Next window created will be the PDF window
         Ok(page_count)
     }
 
@@ -324,6 +327,7 @@ impl Renderer {
     /// Clear the PDF grid_id
     fn clear_pdf_grid_id(&mut self) {
         self.pdf_grid_id = None;
+        self.pdf_expect_window = false;
     }
 
     pub fn handle_event(&mut self, event: &WindowEvent) {
@@ -676,6 +680,13 @@ impl Renderer {
                     Entry::Vacant(vacant_entry) => match command {
                         WindowDrawCommand::Position { .. }
                         | WindowDrawCommand::ViewportMargins { .. } => {
+                            // Auto-detect PDF window: if we're expecting a PDF window, use this grid_id
+                            if self.pdf_expect_window && self.pdf_grid_id.is_none() {
+                                log::info!("Auto-detected PDF window with grid_id: {}", grid_id);
+                                self.pdf_grid_id = Some(grid_id);
+                                self.pdf_expect_window = false;
+                            }
+
                             let mut new_window = RenderedWindow::new(grid_id);
                             new_window.handle_window_draw_command(command);
                             vacant_entry.insert(new_window);

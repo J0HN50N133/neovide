@@ -410,14 +410,17 @@ vim.api.nvim_create_user_command("NeovideOpenPdf", function(opts)
         vim.cmd("bd! #")
     end)
 
-    -- Create a new split window
-    vim.cmd("split")
+    -- First, load the PDF to signal Rust that we're about to open a PDF window
+    -- This sets pdf_expect_window = true in Rust
+    local result = rpcrequest("neovide.open_pdf", path)
 
-    -- Get the grid_id of the current window (the new split window)
-    local ok, grid_id = pcall(vim.fn.nvim_win_get_number, vim.api.nvim_get_current_win())
-    if not ok then
-        grid_id = 0
+    if not result then
+        vim.notify("Failed to open PDF", vim.log.levels.ERROR, { title = "Neovide" })
+        return
     end
+
+    -- Now create a new split window - Rust will auto-detect this as the PDF window
+    vim.cmd("split")
 
     -- Set buffer name to the PDF path for display
     vim.api.nvim_buf_set_name(0, "PDF: " .. path)
@@ -435,35 +438,23 @@ vim.api.nvim_create_user_command("NeovideOpenPdf", function(opts)
     vim.cmd("setlocal nomodifiable")
     vim.cmd("setlocal readonly")
 
-    -- Open the PDF (this triggers the actual PDF loading)
-    local result = rpcrequest("neovide.open_pdf", path)
+    -- Enter PDF mode
+    vim.cmd("setlocal noshowmode")
+    vim.cmd("setlocal nocursorline")
+    vim.cmd("setlocal wrap")
 
-    -- Notify Rust about the grid_id for PDF rendering
-    if result then
-        rpcrequest("neovide.pdf_set_grid_id", grid_id)
+    -- Set up keybindings for PDF navigation
+    vim.keymap.set("n", "q", ":NeovidePdfClose<CR>", { buffer = true, silent = true })
+    vim.keymap.set("n", "<Esc>", ":NeovidePdfClose<CR>", { buffer = true, silent = true })
+    vim.keymap.set("n", "j", ":NeovidePdfNextPage<CR>", { buffer = true, silent = true })
+    vim.keymap.set("n", "k", ":NeovidePdfPrevPage<CR>", { buffer = true, silent = true })
+    vim.keymap.set("n", "<Down>", ":NeovidePdfNextPage<CR>", { buffer = true, silent = true })
+    vim.keymap.set("n", "<Up>", ":NeovidePdfPrevPage<CR>", { buffer = true, silent = true })
+    vim.keymap.set("n", "<Space>", ":NeovidePdfNextPage<CR>", { buffer = true, silent = true })
+    vim.keymap.set("n", "l", ":NeovidePdfNextPage<CR>", { buffer = true, silent = true })
+    vim.keymap.set("n", "h", ":NeovidePdfPrevPage<CR>", { buffer = true, silent = true })
 
-        -- Enter PDF mode
-        vim.cmd("setlocal noshowmode")
-        vim.cmd("setlocal nocursorline")
-        vim.cmd("setlocal wrap")
-
-        -- Set up keybindings for PDF navigation
-        vim.keymap.set("n", "q", ":NeovidePdfClose<CR>", { buffer = true, silent = true })
-        vim.keymap.set("n", "<Esc>", ":NeovidePdfClose<CR>", { buffer = true, silent = true })
-        vim.keymap.set("n", "j", ":NeovidePdfNextPage<CR>", { buffer = true, silent = true })
-        vim.keymap.set("n", "k", ":NeovidePdfPrevPage<CR>", { buffer = true, silent = true })
-        vim.keymap.set("n", "<Down>", ":NeovidePdfNextPage<CR>", { buffer = true, silent = true })
-        vim.keymap.set("n", "<Up>", ":NeovidePdfPrevPage<CR>", { buffer = true, silent = true })
-        vim.keymap.set("n", "<Space>", ":NeovidePdfNextPage<CR>", { buffer = true, silent = true })
-        vim.keymap.set("n", "l", ":NeovidePdfNextPage<CR>", { buffer = true, silent = true })
-        vim.keymap.set("n", "h", ":NeovidePdfPrevPage<CR>", { buffer = true, silent = true })
-
-        vim.notify("PDF opened! Use j/k or h/l to navigate, q to close", vim.log.levels.INFO, { title = "Neovide" })
-    else
-        -- Close the split window if PDF failed to open
-        vim.cmd("close")
-        vim.notify("Failed to open PDF", vim.log.levels.ERROR, { title = "Neovide" })
-    end
+    vim.notify("PDF opened! Use j/k or h/l to navigate, q to close", vim.log.levels.INFO, { title = "Neovide" })
 end, { nargs = 1 })
 
 vim.api.nvim_create_user_command("NeovidePdfNextPage", function()
