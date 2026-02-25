@@ -426,8 +426,6 @@ vim.api.nvim_create_user_command("NeovideOpenPdf", function(opts)
     vim.cmd("setlocal buftype=nofile")
     vim.cmd("setlocal noswapfile")
     vim.cmd("setlocal nowrap")
-    vim.cmd("setlocal modifiable")
-    vim.cmd("setlocal readonly=false")
 
     -- Set placeholder content
     local lines = { "Loading PDF: " .. path, "", "Press j/k to navigate, q to close" }
